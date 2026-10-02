@@ -1,0 +1,32 @@
+export const DEMO_EVENTS = [
+  { day: -3, start: '09:00', end: '09:45', title: 'Executive Committee', attendees: ['CEO', 'Sarah Kim', 'Daniel Ortiz', 'Priya Nathan'], location: 'Board Room' },
+  { day: -3, start: '11:00', end: '12:00', title: 'Davr Bank Steering Committee', attendees: ['CEO', 'Bekzod Nazarov', 'Dilnoza Rashidova'], location: 'Zoom' },
+  { day: -3, start: '15:00', end: '15:30', title: '1:1 - Head of Sales (Marcus Lee)', attendees: ['CEO', 'Marcus Lee'], location: 'Zoom' },
+  { day: -2, start: '08:30', end: '09:30', title: 'Investor call prep', attendees: ['CEO', 'Sarah Kim'], location: 'CEO office' },
+  { day: -2, start: '10:00', end: '11:00', title: 'Regulator meeting - Central Bank', attendees: ['CEO', 'Daniel Ortiz'], location: 'Central Bank' },
+  { day: -2, start: '14:00', end: '14:45', title: 'VP Engineering Interview (Round 1) - Aisha Rahman', attendees: ['CEO', 'Priya Nathan'], location: 'Conf Rm B' },
+  { day: -1, start: '09:30', end: '10:30', title: 'Product Demo - AI assistant', attendees: ['CEO', 'Priya Nathan', 'Eng leads'], location: 'Conf Rm A' },
+  { day: -1, start: '13:00', end: '14:00', title: 'Lunch with TechCorp CFO', attendees: ['CEO', 'Lena Ford'], location: 'Downtown' },
+  { day: -1, start: '16:00', end: '16:30', title: 'Comms weekly', attendees: ['CEO', 'Jordan Blake'], location: 'Zoom' },
+  { day: 1, start: '08:00', end: '09:30', title: 'Board Meeting', attendees: ['CEO', 'Richard Voss', 'Sarah Kim', 'Daniel Ortiz'], location: 'Board Room' },
+  { day: 1, start: '10:00', end: '11:00', title: 'Investor meeting debrief', attendees: ['CEO', 'Richard Voss'], location: 'Zoom' },
+  { day: 1, start: '14:00', end: '15:00', title: 'Davr Bank Day-1 sign-off (with interpreter)', attendees: ['CEO', 'Bekzod Nazarov', 'Dilnoza Rashidova', 'Nodira'], location: 'Zoom' },
+  { day: 1, start: '16:30', end: '17:00', title: 'All-Hands', attendees: ['CEO', 'All staff'], location: 'Auditorium' },
+  { day: 2, start: '09:00', end: '09:30', title: 'Offer call - Aisha Rahman', attendees: ['CEO', 'Priya Nathan'], location: 'Phone' },
+  { day: 2, start: '11:00', end: '12:30', title: 'Q4 Planning Workshop', attendees: ['CEO', 'Executive team'], location: 'Conf Rm A' },
+  { day: 2, start: '15:00', end: '15:45', title: 'Acme signing ceremony', attendees: ['CEO', 'Marcus Lee'], location: 'Acme HQ' },
+  { day: 3, start: '10:00', end: '11:00', title: 'Notification system tech debt review', attendees: ['CEO', 'Tom', 'Priya Nathan'], location: 'Conf Rm B' },
+  { day: 3, start: '13:30', end: '14:30', title: 'Customer advisory board', attendees: ['CEO', 'Lena Ford'], location: 'Conf Rm A' },
+  { day: 4, start: '09:00', end: '17:00', title: 'Tashkent trip - Davr Bank branches', attendees: ['CEO', 'Bekzod Nazarov'], location: 'Tashkent' },
+  { day: 7, start: '09:00', end: '10:00', title: 'Executive Committee', attendees: ['CEO', 'Sarah Kim', 'Daniel Ortiz', 'Priya Nathan'], location: 'Board Room' },
+  { day: 7, start: '14:00', end: '15:00', title: 'Davr Bank Day-100 planning', attendees: ['CEO', 'Dilnoza Rashidova'], location: 'Zoom' },
+];
+
+export const DEMO_MESSAGES = [
+  { day: -1, time: '17:40', channel: 'slack', conversationName: '#exec-assistants', from: { name: 'Maya', title: 'EA to CFO' }, body: 'Board pack for tomorrow is printed and on your desk.' },
+  { day: -1, time: '11:15', channel: 'email', from: { name: 'Priya Nathan', title: 'VP Product' }, subject: 'AI assistant demo recording', body: 'Here is the recording from today’s demo. Usage numbers look strong.' },
+  { day: -2, time: '16:05', channel: 'email', from: { name: 'Daniel Ortiz', title: 'General Counsel' }, subject: 'Notes from the Central Bank meeting', body: 'Summary attached. They expect the Davr Bank DSA to be signed before any data moves.' },
+  { day: -2, time: '09:12', channel: 'slack', conversationName: '#sales', from: { name: 'Marcus Lee', title: 'Head of Sales' }, body: 'Acme legal asked for one more week on the loan terms.' },
+  { day: -3, time: '18:20', channel: 'email', from: { name: 'Bekzod Nazarov', title: 'Davr Bank' }, subject: 'Thank you for the steering committee', body: 'Thank you for the productive meeting. We will send the redlined plan before Friday.' },
+  { day: -3, time: '13:00', channel: 'system', conversationName: 'IT', from: { name: 'IT Service Desk' }, subject: 'Laptop update scheduled', body: 'Your laptop will install security updates tonight at 22:00.' },
+];

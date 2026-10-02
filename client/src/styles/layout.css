@@ -38,3 +38,6 @@
   .shell__menu { display: inline-grid; position: absolute; top: 12px; left: 12px; z-index: 5; }
   .page { padding: 56px 16px 48px; }
 }
+.nav__icon { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); flex: none; }
+.nav__link.is-active .nav__icon { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.nav__link { padding: 5px 8px; }

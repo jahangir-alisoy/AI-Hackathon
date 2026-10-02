@@ -1,9 +1,24 @@
 import { toMinutes } from '../../shared/time.js';
+import { DEMO_EVENTS, DEMO_MESSAGES } from './demoWeek.js';
 
-const today = (clock) => {
+const onDay = (dayOffset, clock) => {
   const now = new Date();
   const [hours, minutes] = clock.split(':').map(Number);
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes).toISOString();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset, hours, minutes).toISOString();
+};
+
+const today = (clock) => onDay(0, clock);
+
+const onWorkday = (workdays, clock) => {
+  const step = Math.sign(workdays);
+  let offset = 0;
+  let remaining = Math.abs(workdays);
+  while (remaining > 0) {
+    offset += step;
+    const weekday = new Date(Date.parse(onDay(offset, '12:00'))).getDay();
+    if (weekday !== 0 && weekday !== 6) remaining -= 1;
+  }
+  return onDay(offset, clock);
 };
 
 const TEMPLATES = [
@@ -35,7 +50,8 @@ export class ScenarioSeeder {
       const templateIds = this.seedTemplates();
       this.seedRules(templateIds);
       this.seedEvents(world.calendar.meetings);
-      for (const input of this.messages(world)) await this.ingestionService.ingest(input, { source: 'seed', useAi: false });
+      this.seedDemoEvents();
+      for (const input of [...this.demoMessages(), ...this.messages(world)]) await this.ingestionService.ingest(input, { source: 'seed', useAi: false });
     });
     this.store.setValue('seededAt', new Date().toISOString());
   }
@@ -65,6 +81,20 @@ export class ScenarioSeeder {
         source: 'seed',
       });
     }
+  }
+
+  seedDemoEvents() {
+    for (const { day, start, end, ...event } of DEMO_EVENTS) {
+      this.eventService.create({ ...event, start: onWorkday(day, start), end: onWorkday(day, end), source: 'seed' });
+    }
+  }
+
+  demoMessages() {
+    return DEMO_MESSAGES.map(({ day, time, ...message }, index) => ({
+      ...message,
+      externalId: `demo-${index}`,
+      receivedAt: onWorkday(day, time),
+    }));
   }
 
   messages(world) {

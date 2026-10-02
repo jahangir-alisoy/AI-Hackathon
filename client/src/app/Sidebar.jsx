@@ -25,12 +25,12 @@ export const Sidebar = ({ onCompose, onNavigate }) => {
         <Plus size={16} /> New message
       </button>
       <nav className="nav" onClick={onNavigate}>
-        <NavLink to="/" end className={LINK}><Home size={17} /> Home</NavLink>
-        <NavLink to="/inbox/all" className={LINK}><Inbox size={17} /> Inbox {unread > 0 && <span className="nav__count">{unread}</span>}</NavLink>
-        <NavLink to="/calendar" className={LINK}><CalendarDays size={17} /> Calendar</NavLink>
-        <NavLink to="/outbox" className={LINK}><Send size={17} /> Sent</NavLink>
-        <NavLink to="/briefings" className={LINK}><BookOpen size={17} /> Briefings</NavLink>
-        <NavLink to="/lab" className={LINK}><FlaskConical size={17} /> Train Lab</NavLink>
+        <NavLink to="/" end className={LINK}><span className="nav__icon"><Home size={16} /></span> Home</NavLink>
+        <NavLink to="/inbox/all" className={LINK}><span className="nav__icon"><Inbox size={16} /></span> Inbox {unread > 0 && <span className="nav__count">{unread}</span>}</NavLink>
+        <NavLink to="/calendar" className={LINK}><span className="nav__icon"><CalendarDays size={16} /></span> Calendar</NavLink>
+        <NavLink to="/outbox" className={LINK}><span className="nav__icon"><Send size={16} /></span> Sent</NavLink>
+        <NavLink to="/briefings" className={LINK}><span className="nav__icon"><BookOpen size={16} /></span> Briefings</NavLink>
+        <NavLink to="/lab" className={LINK}><span className="nav__icon"><FlaskConical size={16} /></span> Train Lab</NavLink>
       </nav>
       <div className="sidebar__footer">
         <Avatar name={settings?.ceoName ?? ''} size={28} />

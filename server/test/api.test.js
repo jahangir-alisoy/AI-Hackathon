@@ -37,8 +37,8 @@ const sign = (rawBody, timestamp = Math.floor(Date.now() / 1000)) => ({
 
 test('seeds the scenario into one inbox', async () => {
   const { body } = await server.call('GET', '/overview');
-  assert.equal(body.counts.email.total, 33);
-  assert.equal(body.counts.slack.total, 15);
+  assert.equal(body.counts.email.total, 36);
+  assert.equal(body.counts.slack.total, 17);
   assert.ok(body.counts.system.total > 0);
   assert.ok(body.today.length >= 14);
 });
