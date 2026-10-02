@@ -21,7 +21,7 @@ export const TemplateEditor = ({ initial, onClose }) => {
 
   return (
     <Modal
-      title={template.id ? 'Edit auto-reply' : 'New auto-reply'}
+      title={template.id ? 'Edit reply' : 'New reply'}
       onClose={onClose}
       footer={(<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>Save</Button></>)}
     >
@@ -30,7 +30,7 @@ export const TemplateEditor = ({ initial, onClose }) => {
           <Field label="Name"><Input value={template.name} onChange={set('name')} /></Field>
           <Field label="Channel"><Select value={template.channel} onChange={set('channel')} options={[{ value: 'any', label: 'Any channel' }, { value: 'slack', label: 'Slack only' }, { value: 'email', label: 'Email only' }]} /></Field>
         </div>
-        <Field label="Message" hint="Placeholders: {{firstName}} {{sender}} {{ceoName}} {{company}} {{subject}}">
+        <Field label="Message" hint="Use {{firstName}} for the sender’s name">
           <Textarea rows={6} value={template.body} onChange={set('body')} />
         </Field>
         {error && <p className="form__error">{error}</p>}

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { GraduationCap, MessageSquareReply, Pencil, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader.jsx';
-import { Card } from '../../components/Card.jsx';
 import { Button } from '../../components/Button.jsx';
 import { Toggle } from '../../components/Toggle.jsx';
 import { TagInput } from '../../components/TagInput.jsx';
+import { Segmented } from '../../components/Segmented.jsx';
 import { CategoryBadge, PriorityBadge } from '../../components/Badges.jsx';
 import { EmptyState } from '../../components/EmptyState.jsx';
 import { api } from '../../lib/api.js';
@@ -14,10 +14,33 @@ import { RuleEditor } from './RuleEditor.jsx';
 import { TemplateEditor } from './TemplateEditor.jsx';
 import { TestBench } from './TestBench.jsx';
 
+const TABS = [
+  { value: 'rules', label: 'Rules' },
+  { value: 'replies', label: 'Auto-replies' },
+  { value: 'people', label: 'People' },
+  { value: 'test', label: 'Try it' },
+];
+
 const describeCondition = (condition) => `${condition.field} ${condition.operator} “${condition.value}”`;
+
+const Row = ({ title, detail, children, enabled, onToggle, onEdit, onDelete, label }) => (
+  <li className={`row ${enabled ? '' : 'is-disabled'}`}>
+    <div className="row__main">
+      <strong>{title}</strong>
+      {detail && <span className="row__detail">{detail}</span>}
+      {children}
+    </div>
+    <div className="row__actions">
+      <Toggle checked={enabled} onChange={onToggle} label={<span className="sr-only">{label} enabled</span>} />
+      <button className="icon-btn" aria-label={`Edit ${label}`} onClick={onEdit}><Pencil size={15} /></button>
+      <button className="icon-btn" aria-label={`Delete ${label}`} onClick={onDelete}><Trash2 size={15} /></button>
+    </div>
+  </li>
+);
 
 export const TrainLabPage = () => {
   const { settings, update } = useSettings();
+  const [tab, setTab] = useState('rules');
   const rules = useResource('/rules', { refreshOn: ['rules.'] });
   const templates = useResource('/templates', { refreshOn: ['templates.'] });
   const [editingRule, setEditingRule] = useState(null);
@@ -25,113 +48,84 @@ export const TrainLabPage = () => {
   const templateName = (id) => templates.data?.find((template) => template.id === id)?.name;
   const version = `${rules.data?.map((rule) => `${rule.id}${rule.enabled}`).join()}${settings?.vipSenders?.join()}${settings?.blockedSenders?.join()}`;
 
-  const toggleRule = async (rule) => {
-    await api.put(`/rules/${rule.id}`, { ...rule, enabled: !rule.enabled });
-    rules.reload();
-  };
-  const deleteRule = async (rule) => {
-    if (!window.confirm(`Delete “${rule.name}”?`)) return;
-    await api.delete(`/rules/${rule.id}`);
-    rules.reload();
-  };
-  const toggleTemplate = async (template) => {
-    await api.put(`/templates/${template.id}`, { ...template, enabled: !template.enabled });
-    templates.reload();
-  };
-  const deleteTemplate = async (template) => {
-    if (!window.confirm(`Delete “${template.name}”?`)) return;
-    await api.delete(`/templates/${template.id}`);
-    templates.reload();
-  };
+  const saveRule = async (rule, patch) => { await api.put(`/rules/${rule.id}`, { ...rule, ...patch }); rules.reload(); };
+  const deleteRule = async (rule) => { if (window.confirm(`Delete “${rule.name}”?`)) { await api.delete(`/rules/${rule.id}`); rules.reload(); } };
+  const saveTemplate = async (template, patch) => { await api.put(`/templates/${template.id}`, { ...template, ...patch }); templates.reload(); };
+  const deleteTemplate = async (template) => { if (window.confirm(`Delete “${template.name}”?`)) { await api.delete(`/templates/${template.id}`); templates.reload(); } };
 
   if (!settings) return null;
 
+  const action = {
+    rules: <Button variant="primary" icon={Plus} onClick={() => setEditingRule({})}>New rule</Button>,
+    replies: <Button variant="primary" icon={Plus} onClick={() => setEditingTemplate({})}>New reply</Button>,
+  }[tab];
+
   return (
-    <div className="page">
-      <PageHeader
-        title="AI Train Lab"
-        subtitle="StandIn ranks every message in three layers: built-in functions (or Claude), then your rules, then your manual corrections. Teach it here."
-        actions={<Button variant="primary" icon={Plus} onClick={() => setEditingRule({})}>New rule</Button>}
-      />
+    <div className="page page--narrow">
+      <PageHeader title="Train Lab" actions={action} />
+      <Segmented label="Section" value={tab} onChange={setTab} options={TABS} />
 
-      <Card title="Try it" className="card--bench">
-        <TestBench version={version} />
-      </Card>
+      {tab === 'rules' && (
+        rules.data?.length === 0
+          ? <EmptyState icon={GraduationCap} title="No rules yet" />
+          : <ul className="rows">
+              {rules.data?.map((rule) => (
+                <Row
+                  key={rule.id}
+                  label="rule"
+                  title={rule.name}
+                  detail={`When ${rule.conditions.map(describeCondition).join(rule.match === 'any' ? ' or ' : ' and ')}`}
+                  enabled={rule.enabled}
+                  onToggle={() => saveRule(rule, { enabled: !rule.enabled })}
+                  onEdit={() => setEditingRule(rule)}
+                  onDelete={() => deleteRule(rule)}
+                >
+                  <span className="row__tags">
+                    {rule.actions.priority && <PriorityBadge priority={rule.actions.priority} />}
+                    {rule.actions.category && <CategoryBadge category={rule.actions.category} />}
+                    {rule.actions.autoReplyTemplateId && <span className="tag tag--accent"><MessageSquareReply size={12} /> {templateName(rule.actions.autoReplyTemplateId) ?? 'Auto-reply'}</span>}
+                  </span>
+                </Row>
+              ))}
+            </ul>
+      )}
 
-      <Card title="Your rules" action={<span className="muted small">Applied top to bottom; later rules win</span>}>
-        {rules.data?.length === 0 && <EmptyState icon={GraduationCap} title="No rules yet" text="Open any message and press “Teach StandIn”." />}
-        <ul className="rule-list">
-          {rules.data?.map((rule) => (
-            <li key={rule.id} className={`rule ${rule.enabled ? '' : 'is-disabled'}`}>
-              <div className="rule__main">
-                <strong>{rule.name}</strong>
-                <span className="rule__when">When {rule.conditions.map(describeCondition).join(rule.match === 'any' ? ' or ' : ' and ')}</span>
-                <span className="rule__then">
-                  {rule.actions.priority && <PriorityBadge priority={rule.actions.priority} />}
-                  {rule.actions.category && <CategoryBadge category={rule.actions.category} />}
-                  {rule.actions.tag && <span className="tag">{rule.actions.tag}</span>}
-                  {rule.actions.autoReplyTemplateId && <span className="tag tag--accent"><MessageSquareReply size={12} /> {templateName(rule.actions.autoReplyTemplateId) ?? 'auto-reply'}</span>}
-                  <span className="muted small">{rule.hits ?? 0} hits</span>
-                </span>
-              </div>
-              <div className="rule__actions">
-                <Toggle checked={rule.enabled} onChange={() => toggleRule(rule)} label={<span className="sr-only">Enabled</span>} />
-                <button className="icon-btn" aria-label="Edit rule" onClick={() => setEditingRule(rule)}><Pencil size={16} /></button>
-                <button className="icon-btn" aria-label="Delete rule" onClick={() => deleteRule(rule)}><Trash2 size={16} /></button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </Card>
-
-      <div className="lab-grid">
-        <Card title="Auto-replies" action={<Button size="sm" icon={Plus} onClick={() => setEditingTemplate({})}>New</Button>}>
-          <Toggle
-            checked={settings.autoReply.enabled}
-            onChange={(enabled) => update({ autoReply: { enabled } })}
-            label="Send auto-replies"
-            description="When off, matching rules only log what they would have sent."
-          />
-          <ul className="template-list">
+      {tab === 'replies' && (
+        <>
+          <div className="panel">
+            <Toggle checked={settings.autoReply.enabled} onChange={(enabled) => update({ autoReply: { enabled } })} label="Send auto-replies" />
+          </div>
+          <ul className="rows">
             {templates.data?.map((template) => (
-              <li key={template.id} className={`template ${template.enabled ? '' : 'is-disabled'}`}>
-                <div className="template__head">
-                  <strong>{template.name}</strong>
-                  <span className="muted small">{template.channel === 'any' ? 'Any channel' : template.channel}</span>
-                  <div className="rule__actions">
-                    <Toggle checked={template.enabled} onChange={() => toggleTemplate(template)} label={<span className="sr-only">Enabled</span>} />
-                    <button className="icon-btn" aria-label="Edit template" onClick={() => setEditingTemplate(template)}><Pencil size={16} /></button>
-                    <button className="icon-btn" aria-label="Delete template" onClick={() => deleteTemplate(template)}><Trash2 size={16} /></button>
-                  </div>
-                </div>
-                <p className="template__body">{template.body}</p>
-              </li>
+              <Row
+                key={template.id}
+                label="reply"
+                title={template.name}
+                detail={template.body}
+                enabled={template.enabled}
+                onToggle={() => saveTemplate(template, { enabled: !template.enabled })}
+                onEdit={() => setEditingTemplate(template)}
+                onDelete={() => deleteTemplate(template)}
+              />
             ))}
           </ul>
-        </Card>
+        </>
+      )}
 
-        <Card title="People">
-          <div className="form">
-            <div className="field">
-              <span className="field__label">VIP senders</span>
-              <TagInput values={settings.vipSenders} onChange={(vipSenders) => update({ vipSenders })} placeholder="Add a name and press Enter" />
-              <span className="field__hint">Raised one level (up to High).</span>
-            </div>
-            <div className="field">
-              <span className="field__label">Blocked senders</span>
-              <TagInput values={settings.blockedSenders} onChange={(blockedSenders) => update({ blockedSenders })} placeholder="Name, address or domain" />
-              <span className="field__hint">Always ranked Noise / Low.</span>
-            </div>
-            <Toggle
-              checked={settings.ai.classifyNewMessages}
-              onChange={(classifyNewMessages) => update({ ai: { classifyNewMessages } })}
-              label="Use Claude for new messages"
-              description={settings.integrations?.claude?.connected ? 'Claude ranks first; your rules still apply on top.' : 'Add ANTHROPIC_API_KEY to enable. Functions are used meanwhile.'}
-              disabled={!settings.integrations?.claude?.connected}
-            />
+      {tab === 'people' && (
+        <div className="panel form">
+          <div className="field">
+            <span className="field__label">VIP — always more important</span>
+            <TagInput values={settings.vipSenders} onChange={(vipSenders) => update({ vipSenders })} placeholder="Add a name" />
           </div>
-        </Card>
-      </div>
+          <div className="field">
+            <span className="field__label">Blocked — always noise</span>
+            <TagInput values={settings.blockedSenders} onChange={(blockedSenders) => update({ blockedSenders })} placeholder="Add a name or address" />
+          </div>
+        </div>
+      )}
+
+      {tab === 'test' && <div className="panel"><TestBench version={version} /></div>}
 
       {editingRule && <RuleEditor initial={editingRule} onClose={() => setEditingRule(null)} onSaved={() => rules.reload()} />}
       {editingTemplate && <TemplateEditor initial={editingTemplate} onClose={() => { setEditingTemplate(null); templates.reload(); }} />}
