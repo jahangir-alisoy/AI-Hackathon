@@ -10,7 +10,7 @@ Requires Node.js 20+.
 npm run setup     # install server + client dependencies
 npm run build     # build the React client
 npm start         # http://localhost:3001
-npm test          # 25 tests, against the real scenario files
+npm test          # 27 tests, against the real scenario files
 ```
 
 For development, run `npm run dev:server` and `npm run dev:client`, then open http://localhost:5173.
@@ -31,14 +31,29 @@ Email / system    ┘                   │                         │
 - **Claude mode:** set `ANTHROPIC_API_KEY`. Claude ranks new messages and writes and regenerates reply drafts. Your rules and overrides still apply on top.
 - **AI Train Lab:** create rules ("if anything contains *Davr* → Urgent"), auto-reply templates, and VIP and blocked senders. Use the live test bench to see how a message would be ranked. "Teach StandIn" on any message turns a correction into a rule.
 
-## Connect a real Slack workspace
+## Connect your Slack
 
-1. Create a Slack app with the bot scopes `chat:write`, `im:write`, `users:read`, `channels:history` and `im:history`. Install it to your workspace.
-2. Start StandIn with `SLACK_BOT_TOKEN=xoxb-…` and `SLACK_SIGNING_SECRET=…`.
-3. Expose it publicly (e.g. `ngrok http 3001`). Under **Event Subscriptions**, set the request URL to `https://<public-url>/api/integrations/slack/events` and subscribe to `message.im` and `message.channels`.
-4. Messages sent to the bot now appear in StandIn live, with their ranking. **Approve & send** posts the reply back to the same Slack conversation.
+StandIn reads **your own** Slack direct messages through a user token, ranks them, and replies **as you** after you approve.
 
-Without a token, Slack replies are stored in StandIn and marked "simulated delivery". Email delivery is simulated too.
+1. **Create the app:** https://api.slack.com/apps → **Create New App** → **From scratch** → choose your workspace. Your admin may need to approve it.
+2. **User token scopes:** under **OAuth & Permissions → User Token Scopes**, add `im:history`, `im:write`, `chat:write`, `users:read`. Optionally add `mpim:history` (group DMs), and `channels:history` + `channels:read` (public channels).
+3. **Install:** click **Install to Workspace**, then copy the **User OAuth Token** (`xoxp-…`). Copy the **Signing Secret** from **Basic Information → App Credentials**.
+4. **Start StandIn with them:**
+   ```bash
+   SLACK_USER_TOKEN=xoxp-... SLACK_SIGNING_SECRET=... npm start
+   ```
+   ```powershell
+   $env:SLACK_USER_TOKEN="xoxp-..."; $env:SLACK_SIGNING_SECRET="..."; npm start
+   ```
+5. **Public URL:** Slack must reach your machine, e.g. `ngrok http 3001`.
+6. **Events:** under **Event Subscriptions**, switch it on and set the Request URL to `https://<public-url>/api/integrations/slack/events`. It should show "Verified". Under **Subscribe to events on behalf of users**, add `message.im` (plus `message.mpim` / `message.channels` if you added those scopes). Save, then reinstall the app if Slack asks.
+7. **Check it:** **Settings → Connections** shows Slack as *Live*. When a colleague DMs you, the message appears in StandIn within a second, ranked. **Approve & send** posts your reply into the same conversation, as you.
+
+Notes:
+
+- StandIn ignores messages you write yourself, including the replies it sends for you, so it never answers itself.
+- StandIn answers Slack immediately and processes the message right after, so Slack never times out and retries.
+- A bot token (`SLACK_BOT_TOKEN=xoxb-…` with the same scopes as bot scopes) also works. In that mode StandIn only sees messages sent to the bot, and replies as the bot.
 
 ## API (short)
 
