@@ -1,4 +1,5 @@
 node_modules/
 client/dist/
 server/outbox/
+server/data/
 .env

@@ -1,15 +1,21 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createApp } from './createApp.js';
+import { createContainer } from './app/createContainer.js';
+import { createApp } from './app/createApp.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 const port = Number(process.env.PORT ?? 3001);
 
-const app = createApp({
+const container = createContainer({
   dataDir: process.env.SCENARIO_DIR ?? root,
-  outboxFile: process.env.OUTBOX_FILE ?? path.join(root, 'server', 'outbox', 'outbox.json'),
-  clientDir: path.join(root, 'client', 'dist'),
+  storeFile: process.env.STORE_FILE ?? path.join(root, 'server', 'data', 'store.json'),
+  outboxFile: process.env.OUTBOX_FILE ?? path.join(root, 'server', 'data', 'briefings-outbox.json'),
 });
 
-app.listen(port, () => console.log(`StandIn API on http://localhost:${port}`));
+if (!container.seeder.isSeeded()) await container.seeder.seed();
+
+createApp(container, { clientDir: path.join(root, 'client', 'dist') }).listen(port, () => {
+  console.log(`StandIn on http://localhost:${port}`);
+  console.log(`Claude: ${container.llmClient.isEnabled() ? 'connected' : 'not configured (functions mode)'} · Slack: ${container.gateway.status().slack.mode}`);
+});

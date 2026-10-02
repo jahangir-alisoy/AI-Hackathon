@@ -1,6 +1,6 @@
 # StandIn — AI Chief of Staff
 
-Hackathon build for "The CEO's Impossible Day". StandIn reads the seven scenario files in this folder, cross-checks them, fixes the calendar, catches contradictions, and drafts everything the CEO must approve. Nothing is sent without approval. The idea and plan are in [plan.md](plan.md).
+One place for the CEO's whole day: Slack, email, system notifications and the calendar. StandIn sits in the middle as an AI layer. It ranks every incoming message, explains why, drafts replies, and sends a reply to the right person once the CEO approves it. Auto-replies are optional. Idea and plan: [plan.md](plan.md).
 
 ## Run it
 
@@ -10,37 +10,59 @@ Requires Node.js 20+.
 npm run setup     # install server + client dependencies
 npm run build     # build the React client
 npm start         # http://localhost:3001
+npm test          # 25 tests, against the real scenario files
 ```
 
-For development, run `npm run dev:server` and `npm run dev:client` in two terminals and open http://localhost:5173.
+For development, run `npm run dev:server` and `npm run dev:client`, then open http://localhost:5173.
 
-```bash
-npm test          # engine + API tests against the real scenario files
+On first start the seven scenario files are imported: 33 emails, 15 Slack messages, the reading list as system notifications, and the fixed calendar. Data lives in `server/data/store.json`. **Settings → Reset demo data** restores it.
+
+## How a message flows
+
+```
+Slack Events API ─┐
+In-app simulator ─┼─▶ Ingestion ─▶ Classification ─▶ Store ─▶ Live update (SSE) ─▶ Dashboard
+Email / system    ┘                   │                         │
+                                      │                         └─▶ Auto-reply (if a rule + switch say so)
+             functions or Claude ─▶ VIP ─▶ your Train Lab rules ─▶ your manual override
 ```
 
-## AI mode
+- **Functions mode (default):** deterministic detectors for fraud/phishing, noise, deadlines, urgency, decisions, approvals, scheduling and "later".
+- **Claude mode:** set `ANTHROPIC_API_KEY`. Claude ranks new messages and writes and regenerates reply drafts. Your rules and overrides still apply on top.
+- **AI Train Lab:** create rules ("if anything contains *Davr* → Urgent"), auto-reply templates, and VIP and blocked senders. Use the live test bench to see how a message would be ranked. "Teach StandIn" on any message turns a correction into a rule.
 
-Without credentials StandIn runs in rules + templates mode: all detection and drafting is deterministic. Set `ANTHROPIC_API_KEY` before `npm start` and each draft is also polished by Claude (`claude-opus-5-5`); every source reference in the AI text is checked against the real sources. Set `STANDIN_AI=off` to force template mode.
+## Connect a real Slack workspace
 
-## Demo flow
+1. Create a Slack app with the bot scopes `chat:write`, `im:write`, `users:read`, `channels:history` and `im:history`. Install it to your workspace.
+2. Start StandIn with `SLACK_BOT_TOKEN=xoxb-…` and `SLACK_SIGNING_SECRET=…`.
+3. Expose it publicly (e.g. `ngrok http 3001`). Under **Event Subscriptions**, set the request URL to `https://<public-url>/api/integrations/slack/events` and subscribe to `message.im` and `message.channels`.
+4. Messages sent to the bot now appear in StandIn live, with their ranking. **Approve & send** posts the reply back to the same Slack conversation.
 
-Use the simulated-time presets in the header to replay the day:
+Without a token, Slack replies are stored in StandIn and marked "simulated delivery". Email delivery is simulated too.
 
-| Time | What to show |
-|---|---|
-| 08:30 | Inbox triaged: phishing caught, noise filtered, Marcus's duplicate 1:1s removed |
-| 10:10 | Interpreter cancelled → Davr call kit: proceed/reschedule decision, guardrails, EN/UZ/RU glossary |
-| 13:30 | Journalist inquiry → press pack; press sync at 16:30 is after the 16:00 deadline |
-| 16:10 | Q3 one-pager with VERIFY flags (v4 deck, Davr terms changed), TechCorp resolved → approve |
-| 16:50 | Comms will auto-send at 17:00, 60 minutes after the reporter deadline |
+## API (short)
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/integrations/slack/events` | Slack Events API (signature verified) |
+| POST | `/api/integrations/slack/simulate` · `/email/inbound` · `/system` | Ingest a message |
+| GET/PATCH/DELETE | `/api/messages[/:id]` | List, update (status, override), delete |
+| POST/PUT/DELETE | `/api/messages/:id/draft` | Generate / edit / discard a reply draft |
+| POST | `/api/messages/:id/send` | Send the approved reply to its channel |
+| CRUD | `/api/rules`, `/api/templates`, `/api/calendar/events` | Train Lab and calendar |
+| GET | `/api/calendar/feed?sources=events,slack,email,system` | Calendar plus messages on one timeline |
+| GET/PATCH | `/api/settings` | Name, theme, AI and auto-reply switches |
+| GET | `/api/stream` | Live events (SSE) |
+| GET | `/api/briefings/...` | Scenario briefings (one-pager, Davr kit, press, audio) |
 
 ## Structure
 
 ```
-server/src/sources       readers for the xlsx and txt scenario files
-server/src/engine        triage, calendar resolver, deadlines, corrections, findings
-server/src/deliverables  one-pager, Davr call kit, press pack, audio briefing
-server/src/ai            optional Claude polishing + citation validation
-server/src/approval      approval gate and simulated outbox (audit log)
-client/src               React UI
+server/src/core          store, event bus, errors, validation
+server/src/modules       messages, classification, rules, templates, replies,
+                         channels (Slack/email/system), calendar, settings, overview, seed
+server/src/scenario      scenario readers, analysis engine, briefing generators
+client/src/app           shell, sidebar, routing, live notifications
+client/src/features      home, inbox, calendar, lab, outbox, briefings, settings
+client/src/components    UI building blocks
 ```
