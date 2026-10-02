@@ -83,7 +83,7 @@ export const SettingsPage = () => {
             <div>
               <strong>Slack</strong>
               <p className="muted small">{integrations.slack?.detail}</p>
-              <p className="muted small">Events URL: <code>{webhook}</code> · needs SLACK_SIGNING_SECRET, SLACK_BOT_TOKEN and a public URL.</p>
+              <p className="muted small">Request URL for Slack Event Subscriptions: <code>{webhook}</code> (must be a public HTTPS address, e.g. via ngrok).</p>
             </div>
             <Status connected={integrations.slack?.connected} label={integrations.slack?.connected ? 'Live' : 'Simulated'} />
           </li>

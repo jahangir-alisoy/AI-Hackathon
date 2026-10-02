@@ -5,10 +5,12 @@ import { startTestServer, SIGNING_SECRET } from './helpers.js';
 
 const slackCalls = [];
 const slackFetch = async (url, options) => {
-  slackCalls.push({ url, body: JSON.parse(options.body) });
+  slackCalls.push({ url, body: Object.fromEntries(new URLSearchParams(options.body)) });
   const method = url.split('/').pop();
   const responses = {
+    'auth.test': { ok: true, user_id: 'U0CEO' },
     'users.info': { ok: true, user: { real_name: 'Bekzod Nazarov' } },
+    'conversations.info': { ok: true, channel: { name: 'davr-integration' } },
     'chat.postMessage': { ok: true, ts: '1700000000.000100' },
     'conversations.open': { ok: true, channel: { id: 'D123' } },
   };
@@ -20,6 +22,13 @@ before(async () => {
   server = await startTestServer({ slackFetch });
 });
 after(() => server.close());
+
+const deliver = async (payload) => {
+  const raw = JSON.stringify(payload);
+  const response = await server.call('POST', '/integrations/slack/events', raw, sign(raw));
+  await server.container.slackEventsService.pending;
+  return response;
+};
 
 const sign = (rawBody, timestamp = Math.floor(Date.now() / 1000)) => ({
   'x-slack-request-timestamp': String(timestamp),
@@ -46,15 +55,16 @@ test('a Davr Bank message is urgent because of the trained rule', async () => {
 });
 
 test('a verified Slack event is stored, classified, and the reply goes back through Slack', async () => {
-  const payload = JSON.stringify({
+  const received = await deliver({
     type: 'event_callback',
-    event: { type: 'message', user: 'U0BEKZOD', channel: 'D0DAVR', text: 'Can you confirm the DSA is signed?', ts: '1700000000.000001', client_msg_id: 'abc-1' },
+    authorizations: [{ user_id: 'U0CEO', is_bot: false }],
+    event: { type: 'message', channel_type: 'im', user: 'U0BEKZOD', channel: 'D0DAVR', text: 'Can you confirm the DSA is signed?', ts: '1700000000.000001', client_msg_id: 'abc-1' },
   });
-  const received = await server.call('POST', '/integrations/slack/events', payload, sign(payload));
   assert.equal(received.status, 200);
   const [message] = (await server.call('GET', '/messages?channel=slack&q=DSA is signed')).body;
   assert.equal(message.from.name, 'Bekzod Nazarov');
   assert.equal(message.source, 'slack-api');
+  assert.equal(message.conversationName, 'Direct message');
 
   const drafted = await server.call('POST', `/messages/${message.id}/draft`, {});
   assert.ok(drafted.body.draft.text.length > 0);
@@ -66,6 +76,31 @@ test('a verified Slack event is stored, classified, and the reply goes back thro
   assert.equal(sent.body.replies[0].delivery, 'slack-api');
   const post = slackCalls.find((call) => call.url.endsWith('chat.postMessage'));
   assert.deepEqual(post.body, { channel: 'D0DAVR', text: 'Signing it now.' });
+});
+
+test('ignores your own Slack messages, including replies StandIn sent for you', async () => {
+  const before = (await server.call('GET', '/messages?channel=slack')).body.length;
+  await deliver({
+    type: 'event_callback',
+    authorizations: [{ user_id: 'U0CEO', is_bot: false }],
+    event: { type: 'message', channel_type: 'im', user: 'U0CEO', channel: 'D0DAVR', text: 'Signing it now.', ts: '1700000000.000200' },
+  });
+  await deliver({
+    type: 'event_callback',
+    event: { type: 'message', channel_type: 'im', user: 'U0CEO', channel: 'D0OTHER', text: 'Sent from my phone', ts: '1700000000.000300' },
+  });
+  const after = (await server.call('GET', '/messages?channel=slack')).body.length;
+  assert.equal(after, before);
+});
+
+test('names channel messages after the Slack channel', async () => {
+  await deliver({
+    type: 'event_callback',
+    authorizations: [{ user_id: 'U0CEO', is_bot: false }],
+    event: { type: 'message', channel_type: 'channel', user: 'U0BEKZOD', channel: 'C0DAVR', text: 'Rebranding window update for the team', ts: '1700000000.000400', client_msg_id: 'abc-2' },
+  });
+  const [message] = (await server.call('GET', '/messages?q=Rebranding window update')).body;
+  assert.equal(message.conversationName, '#davr-integration');
 });
 
 test('rejects Slack events with a bad signature and answers the URL challenge', async () => {

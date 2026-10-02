@@ -6,9 +6,13 @@ export class SlackAdapter {
   }
 
   status() {
-    return this.slackClient.isConfigured()
-      ? { connected: true, mode: 'live', detail: 'Replies are posted to Slack with chat.postMessage' }
-      : { connected: false, mode: 'simulated', detail: 'Set SLACK_BOT_TOKEN to post replies into Slack' };
+    const details = {
+      user: 'Connected with your user token: StandIn sees your direct messages and replies as you',
+      bot: 'Connected with a bot token: StandIn sees messages sent to the bot and replies as the bot',
+      none: 'Set SLACK_USER_TOKEN and SLACK_SIGNING_SECRET to connect your Slack',
+    };
+    const mode = this.slackClient.mode();
+    return { connected: mode !== 'none', mode: mode === 'none' ? 'simulated' : 'live', tokenType: mode, detail: details[mode] };
   }
 
   async send(message, text) {
