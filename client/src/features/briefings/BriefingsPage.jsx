@@ -69,7 +69,6 @@ const Deliverable = ({ type, asOf }) => {
   return (
     <div className="briefing">
       <Card className="briefing__doc">
-        <p className="muted small">{data.subtitle} · {data.mode === 'ai' ? 'polished by Claude' : 'rules + templates'}</p>
         {type === 'briefing' && <Speaker text={data.ai?.markdown ?? data.script} />}
         <Markdown text={data.ai?.markdown ?? data.markdown} />
       </Card>
@@ -90,7 +89,7 @@ export const BriefingsPage = () => {
   const asOf = settings?.scenarioTime ?? '16:10';
   return (
     <div className="page page--wide">
-      <PageHeader title="Briefings" subtitle={`Documents StandIn prepared from the scenario files, as of ${asOf} (change in Settings).`} />
+      <PageHeader title="Briefings" />
       <Segmented label="Briefing" value={type} onChange={setType} options={TYPES} />
       {type === 'caught' ? <Findings asOf={asOf} /> : <Deliverable key={`${type}-${asOf}`} type={type} asOf={asOf} />}
     </div>

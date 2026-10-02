@@ -38,13 +38,7 @@ StandIn reads **your own** Slack direct messages through a user token, ranks the
 1. **Create the app:** https://api.slack.com/apps → **Create New App** → **From scratch** → choose your workspace. Your admin may need to approve it.
 2. **User token scopes:** under **OAuth & Permissions → User Token Scopes**, add `im:history`, `im:write`, `chat:write`, `users:read`. Optionally add `mpim:history` (group DMs), and `channels:history` + `channels:read` (public channels).
 3. **Install:** click **Install to Workspace**, then copy the **User OAuth Token** (`xoxp-…`). Copy the **Signing Secret** from **Basic Information → App Credentials**.
-4. **Start StandIn with them:**
-   ```bash
-   SLACK_USER_TOKEN=xoxp-... SLACK_SIGNING_SECRET=... npm start
-   ```
-   ```powershell
-   $env:SLACK_USER_TOKEN="xoxp-..."; $env:SLACK_SIGNING_SECRET="..."; npm start
-   ```
+4. **Put them in a `.env` file:** in the project folder (next to `package.json`), copy `.env.example` to a new file named `.env`. Paste the token after `SLACK_USER_TOKEN=` and the secret after `SLACK_SIGNING_SECRET=`. Save it, then run `npm start`.
 5. **Public URL:** Slack must reach your machine, e.g. `ngrok http 3001`.
 6. **Events:** under **Event Subscriptions**, switch it on and set the Request URL to `https://<public-url>/api/integrations/slack/events`. It should show "Verified". Under **Subscribe to events on behalf of users**, add `message.im` (plus `message.mpim` / `message.channels` if you added those scopes). Save, then reinstall the app if Slack asks.
 7. **Check it:** **Settings → Connections** shows Slack as *Live*. When a colleague DMs you, the message appears in StandIn within a second, ranked. **Approve & send** posts your reply into the same conversation, as you.

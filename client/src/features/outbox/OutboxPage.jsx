@@ -12,7 +12,7 @@ import { formatRelative, formatTime } from '../../lib/format.js';
 export const OutboxPage = () => {
   const { timeZone } = useSettings();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('drafts');
+  const [tab, setTab] = useState('sent');
   const messages = useResource('/messages?status=', { refreshOn: ['message.', 'messages.'] });
   const activity = useResource('/overview/activity', { refreshOn: ['activity.'] });
   const all = messages.data ?? [];
@@ -22,12 +22,12 @@ export const OutboxPage = () => {
 
   return (
     <div className="page">
-      <PageHeader title="Drafts & sent" subtitle="Nothing leaves without your approval — except auto-replies you switched on in the Train Lab." />
+      <PageHeader title="Sent" />
       <Segmented
         label="Show"
         value={tab}
         onChange={setTab}
-        options={[{ value: 'drafts', label: `Drafts (${drafts.length})` }, { value: 'sent', label: `Sent (${sent.length})` }, { value: 'activity', label: 'Activity log' }]}
+        options={[{ value: 'sent', label: 'Sent' }, { value: 'drafts', label: `Drafts${drafts.length ? ` (${drafts.length})` : ''}` }, { value: 'activity', label: 'Activity' }]}
       />
       {tab === 'drafts' && (
         drafts.length === 0
@@ -59,7 +59,7 @@ export const OutboxPage = () => {
                     <span className="stack-row__main">
                       <strong>To {reply.message.from.name}{reply.auto && <span className="tag tag--accent">Auto-reply</span>}</strong>
                       <span className="stack-row__text">{reply.text}</span>
-                      <span className="muted small">{formatTime(reply.sentAt, timeZone)} · {reply.delivery === 'slack-api' ? 'Delivered to Slack' : reply.detail}</span>
+                      <span className="muted small">{formatTime(reply.sentAt, timeZone)}</span>
                     </span>
                   </button>
                 </li>

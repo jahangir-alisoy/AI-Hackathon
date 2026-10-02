@@ -47,8 +47,7 @@ export const RuleEditor = ({ initial, onClose, onSaved }) => {
 
   return (
     <Modal
-      wide
-      title={rule.id ? 'Edit rule' : 'Teach StandIn a rule'}
+      title={rule.id ? 'Edit rule' : 'New rule'}
       onClose={onClose}
       footer={(
         <>
@@ -58,10 +57,10 @@ export const RuleEditor = ({ initial, onClose, onSaved }) => {
       )}
     >
       <div className="form">
-        <Field label="Rule name"><Input value={rule.name} onChange={(event) => setRule({ ...rule, name: event.target.value })} placeholder="e.g. Davr Bank is always urgent" /></Field>
+        <Field label="Name"><Input value={rule.name} onChange={(event) => setRule({ ...rule, name: event.target.value })} placeholder="e.g. Davr Bank is always urgent" /></Field>
         <div className="rule-section">
           <div className="rule-section__head">
-            <strong>When a message matches</strong>
+            <strong>When</strong>
             <Segmented label="Match" value={rule.match} onChange={(match) => setRule({ ...rule, match })} options={[{ value: 'all', label: 'all conditions' }, { value: 'any', label: 'any condition' }]} />
           </div>
           {rule.conditions.map((condition, index) => (
@@ -76,11 +75,10 @@ export const RuleEditor = ({ initial, onClose, onSaved }) => {
         </div>
         <div className="rule-section">
           <div className="rule-section__head"><strong>Then</strong></div>
-          <div className="form__row form__row--4">
-            <Field label="Set priority"><Select value={rule.actions.priority ?? ''} onChange={(event) => setAction({ priority: event.target.value })} options={[{ value: '', label: 'Keep' }, ...PRIORITIES.map((value) => ({ value, label: PRIORITY_LABELS[value] }))]} /></Field>
-            <Field label="Set category"><Select value={rule.actions.category ?? ''} onChange={(event) => setAction({ category: event.target.value })} options={[{ value: '', label: 'Keep' }, ...CATEGORIES]} /></Field>
-            <Field label="Add tag"><Input value={rule.actions.tag ?? ''} onChange={(event) => setAction({ tag: event.target.value })} placeholder="optional" /></Field>
-            <Field label="Auto-reply with"><Select value={rule.actions.autoReplyTemplateId ?? ''} onChange={(event) => setAction({ autoReplyTemplateId: event.target.value })} options={[{ value: '', label: 'No auto-reply' }, ...(templates.data ?? []).map((template) => ({ value: template.id, label: template.name }))]} /></Field>
+          <div className="form__row form__row--3">
+            <Field label="Priority"><Select value={rule.actions.priority ?? ''} onChange={(event) => setAction({ priority: event.target.value })} options={[{ value: '', label: 'Keep' }, ...PRIORITIES.map((value) => ({ value, label: PRIORITY_LABELS[value] }))]} /></Field>
+            <Field label="Category"><Select value={rule.actions.category ?? ''} onChange={(event) => setAction({ category: event.target.value })} options={[{ value: '', label: 'Keep' }, ...CATEGORIES]} /></Field>
+            <Field label="Auto-reply"><Select value={rule.actions.autoReplyTemplateId ?? ''} onChange={(event) => setAction({ autoReplyTemplateId: event.target.value })} options={[{ value: '', label: 'No auto-reply' }, ...(templates.data ?? []).map((template) => ({ value: template.id, label: template.name }))]} /></Field>
           </div>
         </div>
         {error && <p className="form__error">{error}</p>}

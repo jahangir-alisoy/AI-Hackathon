@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader.jsx';
-import { Card } from '../../components/Card.jsx';
 import { Button } from '../../components/Button.jsx';
 import { Field, Input } from '../../components/Fields.jsx';
 import { Segmented } from '../../components/Segmented.jsx';
@@ -10,7 +9,12 @@ import { api } from '../../lib/api.js';
 import { useSettings } from '../../lib/SettingsContext.jsx';
 import { useToast } from '../../lib/ToastContext.jsx';
 
-const Status = ({ connected, label }) => <span className={`status ${connected ? 'status--on' : ''}`}><span className="status__dot" />{label}</span>;
+const Section = ({ title, children }) => (
+  <section className="settings-section">
+    <h2>{title}</h2>
+    <div className="settings-section__body">{children}</div>
+  </section>
+);
 
 export const SettingsPage = () => {
   const { settings, update, reload } = useSettings();
@@ -22,8 +26,8 @@ export const SettingsPage = () => {
   }, [settings?.ceoName, settings?.assistantName, settings?.company, settings?.scenarioTime]);
 
   if (!settings || !profile) return null;
-  const integrations = settings.integrations ?? {};
-  const webhook = `${window.location.origin}/api/integrations/slack/events`;
+  const claude = settings.integrations?.claude?.connected;
+  const changed = ['ceoName', 'assistantName', 'company'].some((key) => profile[key] !== settings[key]);
 
   const save = async (patch) => {
     try {
@@ -35,7 +39,7 @@ export const SettingsPage = () => {
   };
 
   const reset = async () => {
-    if (!window.confirm('Reset all messages, rules, templates and events to the scenario data?')) return;
+    if (!window.confirm('Reset all data to the scenario?')) return;
     await api.post('/admin/reset');
     await reload();
     notify({ tone: 'success', title: 'Demo data restored' });
@@ -45,68 +49,35 @@ export const SettingsPage = () => {
     <div className="page page--narrow">
       <PageHeader title="Settings" />
 
-      <Card title="Profile">
-        <div className="form">
-          <div className="form__row">
-            <Field label="Your name"><Input value={profile.ceoName} onChange={(event) => setProfile({ ...profile, ceoName: event.target.value })} /></Field>
-            <Field label="Assistant name"><Input value={profile.assistantName} onChange={(event) => setProfile({ ...profile, assistantName: event.target.value })} /></Field>
-          </div>
-          <Field label="Company"><Input value={profile.company} onChange={(event) => setProfile({ ...profile, company: event.target.value })} /></Field>
-          <div><Button variant="primary" onClick={() => save({ ceoName: profile.ceoName, assistantName: profile.assistantName, company: profile.company })}>Save profile</Button></div>
+      <Section title="Profile">
+        <div className="form__row">
+          <Field label="Your name"><Input value={profile.ceoName} onChange={(event) => setProfile({ ...profile, ceoName: event.target.value })} /></Field>
+          <Field label="Assistant name"><Input value={profile.assistantName} onChange={(event) => setProfile({ ...profile, assistantName: event.target.value })} /></Field>
         </div>
-      </Card>
+        <Field label="Company"><Input value={profile.company} onChange={(event) => setProfile({ ...profile, company: event.target.value })} /></Field>
+        {changed && <div><Button variant="primary" onClick={() => save({ ceoName: profile.ceoName, assistantName: profile.assistantName, company: profile.company })}>Save</Button></div>}
+      </Section>
 
-      <Card title="Appearance">
+      <Section title="Appearance">
         <Segmented
           label="Theme"
           value={settings.theme}
           onChange={(theme) => update({ theme })}
           options={[{ value: 'system', label: 'System', icon: Monitor }, { value: 'light', label: 'Light', icon: Sun }, { value: 'dark', label: 'Dark', icon: Moon }]}
         />
-      </Card>
+      </Section>
 
-      <Card title="AI & automation">
-        <div className="form">
-          <Toggle checked={settings.ai.useClaude} onChange={(useClaude) => update({ ai: { useClaude } })} label="Use Claude when available" description="For drafting replies and ranking new messages. Built-in functions are used otherwise." disabled={!integrations.claude?.connected} />
-          <Toggle checked={settings.ai.classifyNewMessages} onChange={(classifyNewMessages) => update({ ai: { classifyNewMessages } })} label="Rank new messages with Claude" disabled={!integrations.claude?.connected} />
-          <Toggle checked={settings.autoReply.enabled} onChange={(enabled) => update({ autoReply: { enabled } })} label="Send auto-replies" description="Rules in the Train Lab can answer messages automatically with your templates." />
-        </div>
-      </Card>
+      <Section title="Automation">
+        <Toggle checked={settings.autoReply.enabled} onChange={(enabled) => update({ autoReply: { enabled } })} label="Auto-replies" />
+        <Toggle checked={claude && settings.ai.useClaude} onChange={(useClaude) => update({ ai: { useClaude, classifyNewMessages: useClaude } })} label="Use Claude" description={claude ? null : 'Add ANTHROPIC_API_KEY to .env to enable'} disabled={!claude} />
+      </Section>
 
-      <Card title="Connections">
-        <ul className="integrations">
-          <li>
-            <div><strong>Claude</strong><p className="muted small">{integrations.claude?.connected ? `Connected · ${integrations.claude.model}` : 'Set ANTHROPIC_API_KEY on the server and restart.'}</p></div>
-            <Status connected={integrations.claude?.connected} label={integrations.claude?.connected ? 'Connected' : 'Not configured'} />
-          </li>
-          <li>
-            <div>
-              <strong>Slack</strong>
-              <p className="muted small">{integrations.slack?.detail}</p>
-              <p className="muted small">Request URL for Slack Event Subscriptions: <code>{webhook}</code> (must be a public HTTPS address, e.g. via ngrok).</p>
-            </div>
-            <Status connected={integrations.slack?.connected} label={integrations.slack?.connected ? 'Live' : 'Simulated'} />
-          </li>
-          <li>
-            <div><strong>Email</strong><p className="muted small">{integrations.email?.detail}</p></div>
-            <Status connected={integrations.email?.connected} label="Simulated" />
-          </li>
-          <li>
-            <div><strong>System notifications</strong><p className="muted small">{integrations.system?.detail}</p></div>
-            <Status connected label="Local" />
-          </li>
-        </ul>
-      </Card>
-
-      <Card title="Scenario & data">
-        <div className="form">
-          <Field label="Briefings as of" hint="Simulated clock used by the Briefings page.">
-            <Input type="time" value={profile.scenarioTime} onChange={(event) => setProfile({ ...profile, scenarioTime: event.target.value })} onBlur={() => save({ scenarioTime: profile.scenarioTime })} />
-          </Field>
-          <p className="muted small">Times are shown in {settings.timeZone}.</p>
-          <div><Button variant="danger" onClick={reset}>Reset demo data</Button></div>
-        </div>
-      </Card>
+      <Section title="Demo">
+        <Field label="Briefings time">
+          <Input type="time" value={profile.scenarioTime} onChange={(event) => setProfile({ ...profile, scenarioTime: event.target.value })} onBlur={() => profile.scenarioTime !== settings.scenarioTime && save({ scenarioTime: profile.scenarioTime })} />
+        </Field>
+        <div><Button variant="danger" onClick={reset}>Reset demo data</Button></div>
+      </Section>
     </div>
   );
 };

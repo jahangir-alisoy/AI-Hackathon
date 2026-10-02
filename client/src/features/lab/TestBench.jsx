@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CategoryBadge, PriorityBadge, Tag } from '../../components/Badges.jsx';
-import { Field, Input, Select, Textarea } from '../../components/Fields.jsx';
+import { Field, Input, Textarea } from '../../components/Fields.jsx';
 import { api } from '../../lib/api.js';
 import { REASON_LABELS } from '../../lib/vocabulary.js';
 
@@ -19,18 +19,11 @@ export const TestBench = ({ version }) => {
   return (
     <div className="bench">
       <div className="form">
-        <div className="form__row">
-          <Field label="Channel"><Select value={sample.channel} onChange={set('channel')} options={[{ value: 'slack', label: 'Slack' }, { value: 'email', label: 'Email' }, { value: 'system', label: 'System' }]} /></Field>
-          <Field label="From"><Input value={sample.from} onChange={set('from')} /></Field>
-        </div>
-        <div className="form__row">
-          <Field label="Sender address"><Input value={sample.handle} onChange={set('handle')} placeholder="optional, e.g. alerts@unknown.net" /></Field>
-          <Field label="Subject"><Input value={sample.subject} onChange={set('subject')} /></Field>
-        </div>
+        <Field label="From"><Input value={sample.from} onChange={set('from')} /></Field>
         <Field label="Message"><Textarea rows={4} value={sample.body} onChange={set('body')} /></Field>
       </div>
       <div className="bench__result" aria-live="polite">
-        <span className="muted small">StandIn would rank it</span>
+        <span className="muted small">Result</span>
         {result && (
           <>
             <div className="classification__verdict">
@@ -46,7 +39,7 @@ export const TestBench = ({ version }) => {
                 </li>
               ))}
             </ul>
-            {result.autoReplyTemplateId && <p className="small">Would trigger an auto-reply.</p>}
+            {result.autoReplyTemplateId && <p className="small">Sends an auto-reply</p>}
           </>
         )}
       </div>

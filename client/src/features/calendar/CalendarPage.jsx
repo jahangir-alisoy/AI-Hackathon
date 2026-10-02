@@ -8,7 +8,7 @@ import { ChannelIcon } from '../../components/Badges.jsx';
 import { useResource } from '../../lib/useResource.js';
 import { useSettings } from '../../lib/SettingsContext.jsx';
 import { CHANNELS } from '../../lib/vocabulary.js';
-import { formatTime, minutesToClock, zoned } from '../../lib/format.js';
+import { minutesToClock, zoned } from '../../lib/format.js';
 import { DAY_END, DAY_START, HOUR_HEIGHT, assignLanes, dayLabel, position, shiftDays, todayKey, toIsoInZone, weekDays } from './calendarMath.js';
 import { EventModal } from './EventModal.jsx';
 
@@ -96,7 +96,6 @@ export const CalendarPage = () => {
     return grouped;
   }, [feed.data, sources, days.join(), timeZone]);
 
-  const counts = Object.fromEntries(SOURCES.map((source) => [source, Object.values(byDay).flat().filter((item) => item.source === source).length]));
   const toggleSource = (source) => setSources(sources.includes(source) ? sources.filter((item) => item !== source) : [...sources, source]);
   const newEvent = (day = dateKey, minutes = 9 * 60) => setEditing({
     title: '',
@@ -104,15 +103,10 @@ export const CalendarPage = () => {
     end: toIsoInZone(day, minutesToClock(minutes + 30), timeZone),
   });
   const title = view === 'day' ? dayLabel(dateKey, { weekday: 'long', month: 'long', day: 'numeric' }) : `${dayLabel(days[0], { month: 'short', day: 'numeric' })} – ${dayLabel(days[6], { month: 'short', day: 'numeric' })}`;
-  const agenda = Object.values(byDay).flat().sort((a, b) => a.startMinutes - b.startMinutes);
 
   return (
     <div className="page page--wide">
-      <PageHeader
-        title="Calendar"
-        subtitle="Meetings and every message on one timeline. Double-click an empty slot to add an event."
-        actions={<Button variant="primary" icon={Plus} onClick={() => newEvent()}>New event</Button>}
-      />
+      <PageHeader title="Calendar" actions={<Button variant="primary" icon={Plus} onClick={() => newEvent()}>New event</Button>} />
       <div className="cal-toolbar">
         <div className="cal-nav">
           <Button size="sm" onClick={() => setDateKey(todayKey(timeZone))}>Today</Button>
@@ -123,7 +117,7 @@ export const CalendarPage = () => {
         <div className="cal-filters" role="group" aria-label="Show sources">
           {SOURCES.map((source) => (
             <button key={source} className={`source-toggle source-toggle--${source} ${sources.includes(source) ? 'is-on' : ''}`} onClick={() => toggleSource(source)} aria-pressed={sources.includes(source)}>
-              <ChannelIcon channel={source} size={13} /> {CHANNELS[source].label} <span className="source-toggle__count">{counts[source]}</span>
+              <ChannelIcon channel={source} size={13} /> {CHANNELS[source].label}
             </button>
           ))}
         </div>
@@ -156,24 +150,6 @@ export const CalendarPage = () => {
           ))}
         </div>
       </div>
-
-      {view === 'day' && agenda.length > 0 && (
-        <section className="cal-agenda">
-          <h2 className="card__title">Timeline</h2>
-          <ul>
-            {agenda.map((item) => (
-              <li key={`${item.kind}-${item.id}`}>
-                <button className="cal-agenda__row" onClick={() => (item.kind === 'event' ? setEditing(item) : navigate(`/inbox/${item.source}/${item.id}`))}>
-                  <span className="cal-agenda__time">{formatTime(item.start, timeZone)}</span>
-                  <ChannelIcon channel={item.source} />
-                  <span className="cal-agenda__title">{item.kind === 'message' ? <><strong>{item.from}</strong> — {item.title}</> : <strong>{item.title}</strong>}</span>
-                  {item.kind === 'message' && <span className={`badge badge--${item.priority}`}><span className="badge__dot" />{item.priority}</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       {editing && <EventModal event={editing} onClose={() => setEditing(null)} />}
     </div>
