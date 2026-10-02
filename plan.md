@@ -96,26 +96,33 @@ G. (Stretch) Reading Backlog → Audio Briefing
 Rule: StandIn never sends, signs, or commits. Everything outgoing goes through an
 Approval Gate into a simulated outbox with an audit log.
 
-## 6. Architecture (Java)
-Stack: Java 21, Spring Boot 3, Apache POI (xlsx), Anthropic Java SDK (or plain HTTP),
-Thymeleaf or a single static HTML page, JSON file cache.
+## 6. Architecture (Node.js + React)
+Backend: Node.js 20, Express, SheetJS `xlsx` (read calendar/inbox), `@anthropic-ai/sdk`, JSON file cache.
+Frontend: React (Vite), one page per screen, fetches JSON from the Express API.
+Audio (stretch): browser Web Speech API, no extra service.
 
 Flow:
 Sources → Readers → Unified Timeline → [Deterministic Engine + LLM Analysis]
 → World State (facts, superseded facts, deadlines, triage) → Generators
 → Approval Gate → Outbox / Audit Log → Dashboard
 
-Components (one job each, behind interfaces):
+Backend modules (one job each):
 - SourceReader: CalendarXlsxReader, InboxXlsxReader, SlackTextReader, DocumentTextReader
 - TimelineBuilder: merges everything into one list of events, sorted by time
-- CalendarResolver: applies changes, removes duplicates, finds overlaps & gaps (pure Java)
-- PhishingDetector: checks sender domain, urgency words, links (pure Java)
+- CalendarResolver: applies changes, removes duplicates, finds overlaps & gaps (plain code, no LLM)
+- PhishingDetector: checks sender domain, urgency words, links (plain code, no LLM)
 - LlmClient: the only class that talks to the model
 - WorldStateAnalyzer: one LLM call → triage, facts, superseded facts, deadlines (JSON)
 - SourceCitationValidator: rejects any LLM output that cites an ID that does not exist
 - DeliverableGenerator: OnePagerGenerator, DavrCallKitGenerator,
   PressResponseGenerator, PodcastScriptGenerator
 - ApprovalGate + Outbox: approve/edit/reject, writes to outbox folder + audit log
+
+Express API (React calls these):
+- GET  /api/today         → Needs You, deadlines, fixed calendar, caught traps
+- GET  /api/deliverables/:type  (one-pager | davr-kit | press | podcast)
+- POST /api/run           → re-run the analysis live
+- POST /api/approve/:id   → approve/edit/reject → outbox + audit log
 
 ## 7. Data model
 - Event { id, source, timestamp, actor, role, subject, body }
@@ -156,7 +163,7 @@ Prompt outlines:
 ## 10. 3-hour build timeline
 | Time | Work |
 |---|---|
-| 00:00–00:15 | Project setup, API key, read all files, print counts (33 emails, 17 entries…) |
+| 00:00–00:15 | Project setup (Vite React app + Express server), API key, read all files, print counts (33 emails, 17 entries…) |
 | 00:15–00:40 | Readers + unified timeline |
 | 00:40–01:10 | CalendarResolver + PhishingDetector (deterministic, unit-test against the data) |
 | 01:10–01:40 | WorldStateAnalyzer + citation validator + Needs You list + Deadline Radar |
@@ -187,7 +194,7 @@ Cut order if late: Audio → Davr glossary languages → Calendar suggestions (k
 
 ## 13. Presentation talking points (30%)
 - "The problem is out-of-date information, not volume." Show trap #2 or #7.
-- "Rules where possible, AI where needed" (calendar logic is pure Java; reading and drafting use the AI).
+- "Rules where possible, AI where needed" (calendar logic is plain code; reading and drafting use the AI).
 - "Every line shows its source" (links to backlog article 2: copilots fail when users cannot see how confident they are).
 - "The CEO keeps the decisions that carry legal, reputational or people risk."
 
@@ -195,4 +202,3 @@ Cut order if late: Audio → Davr glossary languages → Calendar suggestions (k
 - Is the product allowed to call an AI API at runtime? If not, fall back to a no-code
   Claude Project with all files + a strong system prompt; traps, approval rules and demo
   script stay the same.
-- Java stack confirmed, or a lighter single-page HTML + small backend for speed?
